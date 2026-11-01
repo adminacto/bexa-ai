@@ -1,7 +1,8 @@
 // BEXA AI — Next.js middleware
 // Protects private routes and enforces role-based access control.
+// Uses the Supabase SSR pattern: reads/writes cookies via request/response.
 import { NextRequest, NextResponse } from "next/server";
-import { createClient as createServerClient } from "@/utils/supabase/server";
+import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 
@@ -35,9 +36,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const supabase = await createServerClient();
+  // Supabase SSR pattern for middleware: cookie access via request/response
+  let response = NextResponse.next({ request });
 
-  // Get authenticated user
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  // Get authenticated user (also refreshes tokens if needed)
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -78,7 +98,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  // Forward the (possibly refreshed) auth cookies to the response
+  return response;
 }
 
 export const config = {
