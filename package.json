@@ -4,7 +4,9 @@
   "description": "BEXA AI — Complete Admin Management System",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm run build:css && next dev",
+    "build:css": "tailwindcss -i ./app/globals.css -o ./app/tailwind-built.css --minify",
+    "prebuild": "npm run build:css",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

@@ -3,7 +3,7 @@
  * Shows sidebar + header for protected routes, plain for auth pages.
  */
 
-import "./globals.css";
+import "./tailwind-built.css";
 import type { ReactNode } from "react";
 import { Inter } from "next/font/google";
 import { LayoutClient } from "@/components/layout-client";
