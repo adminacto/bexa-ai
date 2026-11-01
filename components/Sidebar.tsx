@@ -13,11 +13,8 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  Menu,
   X,
 } from "lucide-react";
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 
 interface NavItem {
   label: string;
@@ -37,11 +34,18 @@ const navItems: NavItem[] = [
   { label: "Settings", href: "/settings", icon: Settings, adminOnly: true },
 ];
 
-export function Sidebar({ className }: { className?: string }) {
+export function Sidebar({
+  open,
+  onClose,
+  className,
+}: {
+  open?: boolean;
+  onClose?: () => void;
+  className?: string;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, signOut } = useAuth();
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
     await signOut();
@@ -61,132 +65,95 @@ export function Sidebar({ className }: { className?: string }) {
   return (
     <>
       {/* Mobile overlay */}
-      {mobileOpen && (
+      {open && (
         <div
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
-          onClick={() => setMobileOpen(false)}
+          onClick={onClose}
         />
       )}
 
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar drawer */}
       <div
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-200 ease-in-out lg:hidden",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
+          open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <MobileSidebarContent
-          items={visibleItems}
-          pathname={pathname}
-          onNavigate={() => setMobileOpen(false)}
-          onLogout={handleLogout}
-        />
+        <div className="flex h-full flex-col bg-surface border-r border-card-border pt-16">
+          <div className="flex justify-end p-2 border-b border-card-border">
+            <button onClick={onClose} className="p-1 text-muted-foreground hover:text-white">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <nav className="flex-1 space-y-1 px-3 py-4">
+            {visibleItems.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={onClose}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all hover:bg-card-hover",
+                  pathname === item.href
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground"
+                )}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="p-3 border-t border-card-border">
+            <button
+              onClick={() => {
+                onClose?.();
+                handleLogout();
+              }}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all text-red-400 hover:bg-red-500/10"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              Logout
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — in-flow so it pushes content */}
       <aside
         className={cn(
-          "hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-card-border lg:bg-surface lg:overflow-y-auto lg:fixed lg:inset-y-0 lg:top-16 lg:z-30",
+          "hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:border-r lg:border-card-border lg:bg-surface lg:overflow-y-auto",
           className
         )}
       >
-        <SidebarContent
-          items={visibleItems}
-          pathname={pathname}
-          onLogout={handleLogout}
-        />
+        <div className="flex flex-col h-full pt-6">
+          <nav className="flex-1 space-y-1 px-3">
+            {visibleItems.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all hover:bg-card-hover",
+                  pathname === item.href
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground"
+                )}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="p-3 border-t border-card-border">
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all text-red-400 hover:bg-red-500/10"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              Logout
+            </button>
+          </div>
+        </div>
       </aside>
     </>
-  );
-}
-
-function SidebarContent({
-  items,
-  pathname,
-  onLogout,
-}: {
-  items: NavItem[];
-  pathname: string;
-  onLogout: () => void;
-}) {
-  return (
-    <div className="flex flex-col h-full pt-6">
-      <nav className="flex-1 space-y-1 px-3">
-        {items.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all hover:bg-card-hover",
-              pathname === item.href
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground"
-            )}
-          >
-            <item.icon className="h-4 w-4 shrink-0" />
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-      <div className="p-3 border-t border-card-border">
-        <button
-          onClick={onLogout}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all text-red-400 hover:bg-red-500/10"
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          Logout
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function MobileSidebarContent({
-  items,
-  pathname,
-  onNavigate,
-  onLogout,
-}: {
-  items: NavItem[];
-  pathname: string;
-  onNavigate: () => void;
-  onLogout: () => void;
-}) {
-  return (
-    <div className="flex flex-col h-full bg-surface border-r border-card-border pt-16">
-      <div className="flex justify-end p-2 border-b border-card-border">
-        <X className="h-5 w-5 cursor-pointer text-muted-foreground" onClick={() => {}} />
-      </div>
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {items.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all hover:bg-card-hover",
-              pathname === item.href
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground"
-            )}
-          >
-            <item.icon className="h-4 w-4 shrink-0" />
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-      <div className="p-3 border-t border-card-border">
-        <button
-          onClick={() => {
-            onNavigate();
-            onLogout();
-          }}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all text-red-400 hover:bg-red-500/10"
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          Logout
-        </button>
-      </div>
-    </div>
   );
 }
